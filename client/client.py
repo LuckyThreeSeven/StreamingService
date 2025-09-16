@@ -24,12 +24,14 @@ command = [
     'ffmpeg',
     '-f', 'avfoundation',
     '-framerate', '30',
-    '-pix_fmt', 'nv12',  # 입력 픽셀 포맷
-    '-i', '0',           # 입력 장치 (0번 비디오)
+    '-pix_fmt', 'nv12',
+    '-i', '0:0',           # ⬅️ 비디오 + 오디오
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-tune', 'zerolatency',
-    '-f', 'mpegts',      # SRT 전송을 위한 컨테이너 포맷
+    '-c:a', 'aac',         # ⬅️ 오디오 코덱
+    '-b:a', '128k',        # ⬅️ 오디오 비트레이트
+    '-f', 'mpegts',
     SRT_URL
 ]
 

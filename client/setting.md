@@ -29,3 +29,15 @@ sudo apt install ffmpeg
 ffmpeg -version
 ```
 
+&nbsp;
+
+#### 클라이언트 카메라, 마이크 설정
+
+``` bash
+ffmpeg -f avfoundation -list_devices true -i ""
+```
+
+<center><img src="https://image.minnnning.kr/images/023c0443-db6f-47e7-985e-e332c77d02ed.webp" style="zoom:50%;"></center>
+
+클라이언트 28번 줄 카메라 : 마이크 번호 설정을 할 수 있다
+
