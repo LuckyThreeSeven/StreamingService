@@ -1,0 +1,56 @@
+# # SRT 리스너를 활성화합니다.
+# srt: yes
+# srtAddress: :8890
+
+# # pathDefaults는 비워둡니다.
+# pathDefaults:
+
+# # paths에 정규표현식을 사용하여 '모든 경로'에 대한 규칙을 명시적으로 정의합니다.
+# paths:
+#   # '~^.*$'는 모든 경로 이름과 일치하는 정규표현식입니다.
+#   '~^.*$':
+#     # 외부 클라이언트(FFmpeg 등)로부터 스트림을 받을 수 있도록 설정합니다.
+#     source: publisher
+
+#     # 이 경로로 들어오는 모든 스트림의 녹화를 활성화합니다.
+#     record: yes
+    
+#     # 녹화 파일 경로입니다. %path 변수가 동적으로 들어온 스트림 이름으로 자동 변경됩니다.
+#     recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+    
+#     # 녹화 파일 포맷을 fmp4로 지정합니다.
+#     recordFormat: fmp4
+    
+#     # 1분 단위로 파일을 분할합니다.
+#     recordPartDuration: 1m
+    
+#     # 1일이 지난 녹화 파일을 자동으로 삭제합니다.
+#     recordDeleteAfter: 24h
+
+# ffmpeg -f avfoundation -framerate 30 -pix_fmt nv12 -i "0" \
+# -c:v libx264 -preset veryfast -tune zerolatency \
+# -f mpegts "srt://127.0.0.1:8890?streamid=publish:all/asdfasdf"
+
+# SRT 리스너를 활성화합니다.
+srt: yes
+srtAddress: :8890
+
+# pathDefaults는 비워둡니다.
+pathDefaults:
+
+# paths에 정규표현식을 사용하여 '모든 경로'에 대한 규칙을 명시적으로 정의합니다.
+paths:
+  # '~^.*$'는 모든 경로 이름과 일치하는 정규표현식입니다.
+  '~^.*$':
+    source: publisher
+    record: yes
+    recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+    recordFormat: fmp4
+    
+    # 이 값은 1초로 두는 것을 권장합니다 (갑작스러운 종료 시 최대 1초 분량만 유실).
+    recordPartDuration: 1s
+    
+    # ⬇️ 이 값을 1m으로 수정하여 1분마다 새 파일을 생성하도록 합니다. ⬇️
+    recordSegmentDuration: 1m
+    
+    recordDeleteAfter: 24h
