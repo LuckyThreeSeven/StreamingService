@@ -2,38 +2,62 @@ import subprocess
 import uuid
 import sys
 from datetime import datetime
+import platform  # ⬅️ 운영체제 확인을 위해 추가
 
 # --- 설정 ---
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 8890  # MediaMTX에 설정한 SRT 포트
 
 # --- 동적 streamid 생성 ---
-# 1. 클라이언트를 식별하기 위한 고유 ID를 생성합니다.
 CLIENT_UUID = str(uuid.uuid4())
-# 2. 현재 시간을 "YYYYMMDD-HHMMSS" 형식의 문자열로 변환합니다.
 REQUEST_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-# 3. 'publish:uuid/timestamp' 형식에 맞게 SRT URL을 생성합니다.
 SRT_URL = f'srt://{SERVER_IP}:{SERVER_PORT}?streamid=publish:{CLIENT_UUID}/{REQUEST_TIME}'
 
+# --- 운영체제에 따라 FFmpeg 명령어 분기 ---
+command = []
+current_os = platform.system()
 
-# --- FFmpeg 명령어 생성 ---
-# 사용자가 요청한 새로운 명령어 형식에 맞게 재구성합니다.
-# macOS (avfoundation) 기준입니다.
-command = [
-    'ffmpeg',
-    '-f', 'avfoundation',
-    '-framerate', '30',
-    '-pix_fmt', 'nv12',
-    '-i', '0:0',           # ⬅️ 비디오 + 오디오
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-tune', 'zerolatency',
-    '-c:a', 'aac',         # ⬅️ 오디오 코덱
-    '-b:a', '128k',        # ⬅️ 오디오 비트레이트
-    '-f', 'mpegts',
-    SRT_URL
-]
+if current_os == "Darwin":  # 🍎 "Darwin"은 macOS의 커널 이름입니다.
+    print(">>> macOS 환경을 감지했습니다.")
+    command = [
+        'ffmpeg',
+        '-f', 'avfoundation',
+        '-framerate', '30',
+        '-pix_fmt', 'nv12',
+        '-i', '0:0',           # macOS: 비디오장치 0번, 오디오장치 0번
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-tune', 'zerolatency',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-f', 'mpegts',
+        SRT_URL
+    ]
+elif current_os == "Linux":  # 🐧 "Linux"는 Ubuntu를 포함한 리눅스 계열입니다.
+    print(">>> Linux 환경(Ubuntu)을 감지했습니다.")
+    command = [
+        'ffmpeg',
+        # 비디오 입력 (웹캠)
+        '-f', 'v4l2',
+        '-framerate', '30',
+        '-video_size', '1280x720',
+        '-i', '/dev/video0',      # Linux: 첫 번째 웹캠
+        # 오디오 입력 (마이크)
+        '-f', 'alsa',
+        '-i', 'hw:0',             # Linux: 첫 번째 사운드카드
+        # 출력 및 인코딩 설정
+        '-c:v', 'libx264',
+        '-preset', 'veryfast',
+        '-tune', 'zerolatency',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-f', 'mpegts',
+        SRT_URL
+    ]
+else:
+    print(f"오류: 지원되지 않는 운영체제({current_os})입니다. macOS 또는 Linux에서 실행해주세요.")
+    sys.exit()
+
 
 print("-" * 40)
 print(f"클라이언트 UUID: {CLIENT_UUID}")
@@ -45,7 +69,6 @@ print(' '.join(command))
 print("-" * 40)
 
 try:
-    # FFmpeg 프로세스를 실행합니다.
     process = subprocess.Popen(command)
     process.wait()
 except FileNotFoundError:
@@ -55,7 +78,6 @@ except KeyboardInterrupt:
     print("\n사용자에 의해 전송이 중단되었습니다.")
     process.terminate()
 finally:
-    # 프로세스가 여전히 실행 중이면 강제 종료합니다.
     if 'process' in locals() and process.poll() is None:
         process.kill()
     print("프로그램을 종료합니다.")
