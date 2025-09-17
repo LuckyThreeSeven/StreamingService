@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     ports:
       - "8890:8890/udp"   # SRT 입력
+      - "9997:9997"
 
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
