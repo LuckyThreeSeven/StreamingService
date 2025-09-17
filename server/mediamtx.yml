@@ -2,6 +2,9 @@
 srt: yes
 srtAddress: :8890
 
+api: yes # api 서버 기능을 활성화 서버가 연결되는지 확인하기 위함
+apiAddress: :9997
+
 # pathDefaults는 비워둡니다.
 pathDefaults:
 

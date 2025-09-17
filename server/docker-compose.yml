@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mediamtx:
     image: bluenviron/mediamtx:latest
@@ -7,8 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "8890:8890/udp"   # SRT 입력
-      - "8888:8888"       # HLS, WebRTC 등
-      - "1935:1935"       # RTMP
+      - "9997:9997"
+
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
       - ./recordings:/recordings   # 녹화 저장 경로
