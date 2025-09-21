@@ -22,14 +22,14 @@ OFFLINE_UPLOAD_URL = f'http://127.0.0.1:8001/upload/video/{CLIENT_UUID}'
 
 def check_server_connection(ip, port):
     """서버의 TCP 포트가 열려 있는지 확인합니다."""
-    print(f"📡 {ip}:{port} 서버 연결 상태 확인 중...")
+    print(f" {ip}:{port} 서버 연결 상태 확인 중...")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(2) # 응답 대기 시간
         if sock.connect_ex((ip, port)) == 0:
-            print(f"✅ 연결 성공.")
+            print(f" 연결 성공.")
             return True
         else:
-            print(f"❌ 연결 실패.")
+            print(f" 연결 실패.")
             return False
 
 def get_base_ffmpeg_command(os_type):
@@ -37,7 +37,7 @@ def get_base_ffmpeg_command(os_type):
     if os_type == "Darwin":
         return [
             'ffmpeg', '-f', 'avfoundation', '-framerate', '30', '-pix_fmt', 'nv12',
-            '-i', '3:0'
+            '-i', '0:0'
         ]
     elif os_type == "Linux":
         return [
@@ -49,12 +49,14 @@ def get_base_ffmpeg_command(os_type):
 
 def stream_to_server():
     """온라인 모드: 서버로 스트리밍을 시작합니다. 연결이 끊기면 함수가 종료됩니다."""
-    print("\n🚀 [온라인 모드] 서버로 스트리밍을 시작합니다.")
+    print("\n [온라인 모드] 서버로 스트리밍을 시작합니다.")
     REQUEST_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
     SRT_URL = f'srt://{SERVER_IP}:{SERVER_PORT}?streamid=publish:{CLIENT_UUID}/{REQUEST_TIME}'
     
     command = get_base_ffmpeg_command(platform.system())
     if not command: return
+
+    command[1:1] = ['-v', 'quiet', '-stats'] # 로그 간단하게
 
     command.extend([
         '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency',
@@ -62,7 +64,7 @@ def stream_to_server():
         '-f', 'mpegts', SRT_URL
     ])
     
-    print("실행될 명령어: ", ' '.join(command))
+    #print("실행될 명령어: ", ' '.join(command))
     subprocess.run(command, stderr=sys.stderr)
 
 def record_clip_locally(duration):
@@ -76,6 +78,8 @@ def record_clip_locally(duration):
     command = get_base_ffmpeg_command(platform.system())
     if not command: return
 
+    command[1:1] = ['-v', 'quiet', '-stats'] # 로그 간단하게
+
     command.extend([
         '-t', str(duration),
         '-c:v', 'libx264', '-preset', 'veryfast',
@@ -84,7 +88,7 @@ def record_clip_locally(duration):
     ])
 
     print(f"녹화 파일 경로: {output_path}")
-    print("실행될 명령어: ", ' '.join(command))
+    #print("실행될 명령어: ", ' '.join(command))
     subprocess.run(command, stderr=sys.stderr)
     print(f" {duration}초 녹화 완료.")
 
