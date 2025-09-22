@@ -14,7 +14,7 @@ paths:
   '~^.*$':
     source: publisher
     record: yes
-    recordPath: ./recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+    recordPath: ./recordings/%path/%Y%m%d-%H%M%S
     recordFormat: fmp4
     
     # 영상이 생성되는 단위 설정

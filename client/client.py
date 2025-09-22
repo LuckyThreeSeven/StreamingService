@@ -1,7 +1,7 @@
 import subprocess
 import uuid
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 import platform
 import socket
 import time
@@ -50,7 +50,7 @@ def get_base_ffmpeg_command(os_type):
 def stream_to_server():
     """온라인 모드: 서버로 스트리밍을 시작합니다. 연결이 끊기면 함수가 종료됩니다."""
     print("\n [온라인 모드] 서버로 스트리밍을 시작합니다.")
-    REQUEST_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
+    REQUEST_TIME = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     SRT_URL = f'srt://{SERVER_IP}:{SERVER_PORT}?streamid=publish:{CLIENT_UUID}/{REQUEST_TIME}'
     
     command = get_base_ffmpeg_command(platform.system())
@@ -72,7 +72,7 @@ def record_clip_locally(duration):
     print(f"\n [오프라인 모드] {duration}초 로컬 녹화를 시작합니다.")
     os.makedirs(LOCAL_REC_PATH, exist_ok=True)
     
-    file_name = datetime.now().strftime("%Y%m%d-%H%M%S") + ".mp4"
+    file_name = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + ".mp4"
     output_path = os.path.join(LOCAL_REC_PATH, file_name)
 
     command = get_base_ffmpeg_command(platform.system())
