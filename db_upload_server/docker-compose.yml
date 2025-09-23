@@ -1,0 +1,10 @@
+services:
+  server:
+    build: .
+    container_name: db-upload-server
+    volumes:
+      - /Users/yeseul/projects/neves/streaming/server/recordings:/app/../server/recordings
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
