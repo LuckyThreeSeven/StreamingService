@@ -68,7 +68,7 @@ class VideoProcessor:
             "stream_started_at": stream_started_at.isoformat(),
             "created_at": created_at.isoformat(),
             "file_size": file_size,
-            "duration": round(duration, 2),
+            "duration": duration,
             "object_key": self.s3_key,
             "file_type": file_type,
         }
