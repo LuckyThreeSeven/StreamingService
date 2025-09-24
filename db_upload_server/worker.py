@@ -26,7 +26,8 @@ class VideoProcessor:
         try:
             # 1. 정보 파싱
             video_info = self._parse_info()
-            
+            logging.info(video_info)
+
             # 2. S3 업로드
             s3_url = self._upload_to_s3()
             if s3_url is None:
@@ -56,7 +57,10 @@ class VideoProcessor:
         created_at_str = self.filepath.stem
         file_type = self.filepath.suffix[1:]
 
-        stream_started_at = datetime.strptime(stream_started_at_str, "%Y%m%d-%H%M%S")
+        if stream_started_at_str == "offline":
+            stream_started_at = "0"
+        else:
+            stream_started_at = datetime.strptime(stream_started_at_str, "%Y%m%d-%H%M%S").isoformat()
         created_at = datetime.strptime(created_at_str, "%Y%m%d-%H%M%S")
         
         file_size = self.filepath.stat().st_size
@@ -65,7 +69,7 @@ class VideoProcessor:
 
         return {
             "blackbox_uuid": blackbox_uuid,
-            "stream_started_at": stream_started_at.isoformat(),
+            "stream_started_at": stream_started_at,
             "created_at": created_at.isoformat(),
             "file_size": file_size,
             "duration": duration,
