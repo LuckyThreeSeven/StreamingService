@@ -3,12 +3,14 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from pathlib import Path
 import shutil
+import os
 
-app = FastAPI(title="Video Upload Server")
+title = Path(os.getenv("CONTAINER_NAME", "Video Upload Server"))
+app = FastAPI(title=title)
 
 # 컨테이너 내부의 마운트된 볼륨 경로
-# 이 경로는 호스트의 server/recordings 와 연결됩니다.
-BASE_SAVE_DIR = Path("/data")
+# 환경 변수가 없으면 기본값으로 /data를 사용합니다.
+BASE_SAVE_DIR = Path(os.getenv("CONTAINER_DATA_PATH", "/data"))
 
 @app.post("/upload/video/{client_uuid}")
 def upload_video(client_uuid: str, video_file: UploadFile = File(...)):
