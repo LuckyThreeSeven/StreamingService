@@ -41,3 +41,7 @@ ffmpeg -f avfoundation -list_devices true -i ""
 
 클라이언트 28번 줄 카메라 : 마이크 번호 설정을 할 수 있다
 
+``` bash
+pip3 install requests python-dotenv
+```
+
