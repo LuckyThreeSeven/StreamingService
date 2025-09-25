@@ -2,10 +2,11 @@
 services:
   fastapi_uploader:
     build: .
-    container_name: offline_upload_server
+    container_name: ${CONTAINER_NAME:-fastapi_uploader_default}
     ports:
-      - "8001:8000"
+      - "${HOST_PORT:-8001}:${CONTAINER_PORT:-8000}"
     volumes:
-      # 현재 위치(upload_server)에서 한 단계 상위 폴더(../)의
-      # server/recordings 폴더를 컨테이너의 /data 폴더와 연결
-      - ../server/recordings:/data
+      - ${HOST_SAVE_PATH:-../server/recordings}:${CONTAINER_DATA_PATH:-/data}
+
+    # uvicorn 실행 시 .env의 CONTAINER_PORT 변수를 사용하도록 설정
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}

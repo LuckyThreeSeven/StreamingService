@@ -1,5 +1,4 @@
 import subprocess
-import uuid
 import sys
 from datetime import datetime, timezone
 import platform
@@ -9,27 +8,44 @@ import os
 import glob
 import threading
 import requests
+import config
 
 # --- 설정 ---
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 8890
-SERVER_CHECK_PORT = 9997
-CLIENT_UUID = 'TEST_UUID'
-LOCAL_REC_PATH = f'./{CLIENT_UUID}'
-# 오프라인
-OFFLINE_REC_DURATION = 30
-OFFLINE_UPLOAD_URL = f'http://127.0.0.1:8001/upload/video/{CLIENT_UUID}'
+CLIENT_UUID = config.CLIENT_UUID
 
-def check_server_connection(ip, port):
+MEDIAMTX_SERVER_URL = config.MEDIAMTX_SERVER_URL
+MEDIAMTX_SERVER_CHECK_URL = config.MEDIAMTX_SERVER_CHECK_URL
+
+LOCAL_REC_PATH = config.LOCAL_REC_PATH
+
+# 오프라인
+OFFLINE_REC_DURATION = config.OFFLINE_REC_DURATION
+OFFLINE_UPLOAD_SERVER_BASE_URL = config.OFFLINE_UPLOAD_SERVER_BASE_URL
+OFFLINE_UPLOAD_SERVER_URL = f'{OFFLINE_UPLOAD_SERVER_BASE_URL}{CLIENT_UUID}'
+
+def check_server_connection(url):
     """서버의 TCP 포트가 열려 있는지 확인합니다."""
-    print(f" {ip}:{port} 서버 연결 상태 확인 중...")
+    print(f" mediaMTX 서버 연결 상태 확인 중...")
+    try:
+        # 1. URL을 ':' 기준으로 IP와 포트로 분리합니다.
+        ip, port_str = url.split(':')
+        
+        # 2. 포트 번호를 문자열에서 정수(int)로 변환합니다.
+        port = int(port_str)
+        
+    except ValueError:
+        print(f"오류: '{url}'은(는) 유효한 'IP:포트' 형식이 아닙니다.")
+        return False
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(2) # 응답 대기 시간
+        
+        # 3. 분리된 ip와 port를 튜플 형태로 전달합니다.
         if sock.connect_ex((ip, port)) == 0:
-            print(f" 연결 성공.")
+            print("연결 성공.")
             return True
         else:
-            print(f" 연결 실패.")
+            print("연결 실패.")
             return False
 
 def get_base_ffmpeg_command(os_type):
@@ -51,7 +67,7 @@ def stream_to_server():
     """온라인 모드: 서버로 스트리밍을 시작합니다. 연결이 끊기면 함수가 종료됩니다."""
     print("\n [온라인 모드] 서버로 스트리밍을 시작합니다.")
     REQUEST_TIME = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    SRT_URL = f'srt://{SERVER_IP}:{SERVER_PORT}?streamid=publish:{CLIENT_UUID}/{REQUEST_TIME}'
+    SRT_URL = f'srt://{MEDIAMTX_SERVER_URL}?streamid=publish:{CLIENT_UUID}/{REQUEST_TIME}'
     
     command = get_base_ffmpeg_command(platform.system())
     if not command: return
@@ -116,7 +132,7 @@ def upload_local_files():
                 payload = {'uuid': CLIENT_UUID}
 
                 # HTTP POST 요청 전송
-                response = requests.post(OFFLINE_UPLOAD_URL, files=files, data=payload, timeout=60)
+                response = requests.post(OFFLINE_UPLOAD_SERVER_URL, files=files, data=payload, timeout=60)
 
                 # 서버로부터 받은 응답 확인 (200은 성공을 의미)
                 if response.status_code == 200:
@@ -158,7 +174,7 @@ def start_online_and_upload_concurrently():
 if __name__ == "__main__":
     try:
         while True:
-            if check_server_connection(SERVER_IP, SERVER_CHECK_PORT):
+            if check_server_connection(MEDIAMTX_SERVER_CHECK_URL):
                 start_online_and_upload_concurrently()
                 print("\n 스트리밍이 중단되었습니다. 연결 상태를 다시 확인합니다...")
                 time.sleep(1)
