@@ -5,9 +5,9 @@ services:
     container_name: mediamtx
     restart: unless-stopped
     ports:
-      - "${MEDIAMTX_SRT_PORT}:8890/udp"   # SRT 입력
-      - "${MEDIAMTX_CHECK_PORT}:9997"
+      - "${MEDIAMTX_SRT_PORT:-8890}:8890/udp"   # SRT 입력
+      - "${MEDIAMTX_CHECK_PORT:-9997}:9997"
 
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
-      - ${MEDIAMTX_REC_PATH}:/recordings   # 녹화 저장 경로
+      - ${MEDIAMTX_REC_PATH:-./recordings}:/recordings   # 녹화 저장 경로
