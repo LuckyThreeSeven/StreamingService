@@ -19,13 +19,15 @@ class VideoProcessor:
         self.filepath = filepath
         self.original_filename = filepath.name
         self.video_info = {}
+        self.parsed_data = {}
 
     def run(self):
         """처리 파이프라인 전체를 실행합니다."""
         logging.info(f"'{self.original_filename}' 처리 시작.")
         try:
             # 1. 정보 파싱 및 새로운 파일명 생성
-            self._parse_info_and_generate_new_names()
+            self._parse_info()
+            self._generate_new_names()
             logging.info(f"파싱된 정보: {self.video_info}")
 
             # 2. S3 업로드
@@ -46,38 +48,52 @@ class VideoProcessor:
             logging.error(f"'{self.original_filename}' 처리 중 에러 발생: {e}")
             self._move_to(config.FAILED_DIR)
 
-    def _parse_info_and_generate_new_names(self):
-        """경로와 파일로부터 메타데이터를 파싱하고, KST 기준으로 새 파일명을 생성합니다."""
+    def _parse_info(self):
+        """경로와 파일로부터 메타데이터를 파싱하여 self.parsed_data에 저장합니다."""
         parts = self.filepath.parts
         base_index = parts.index(config.PROCESSING_DIR.name)
         
-        blackbox_uuid = parts[base_index + 1]
+        created_at_utc = datetime.strptime(self.filepath.stem, "%Y%m%d-%H%M%S")
+        
         stream_started_at_str = parts[base_index + 2]
-        created_at_str = self.filepath.stem
-        file_type = self.filepath.suffix[1:]
-
-        created_at_utc = datetime.strptime(created_at_str, "%Y%m%d-%H%M%S")
-        created_at_kst = self._change_utc_to_kst(created_at_utc)
-
-        new_filename_kst = created_at_kst.strftime("%Y%m%d-%H%M%S") + f".{file_type}"
-        new_s3_key = f"{blackbox_uuid}/{new_filename_kst}"
-
         if stream_started_at_str == "offline":
-            stream_started_at_kst_iso = "0"
+            stream_started_at_kst = "0"
         else:
             stream_started_at_utc = datetime.strptime(stream_started_at_str, "%Y%m%d-%H%M%S")
-            stream_started_at_kst_iso = self._change_utc_to_kst(stream_started_at_utc).isoformat()
-        
-        file_size = self.filepath.stat().st_size
+            stream_started_at_kst = self._change_utc_to_kst(stream_started_at_utc)
+
         with VideoFileClip(str(self.filepath)) as clip:
             duration = clip.duration
 
+        # 파싱된 중간 결과물을 self.parsed_data에 저장
+        self.parsed_data = {
+            "blackbox_uuid": parts[base_index + 1],
+            "stream_started_at_kst": stream_started_at_kst,
+            "created_at_kst": self._change_utc_to_kst(created_at_utc),
+            "file_type": self.filepath.suffix[1:],
+            "file_size": self.filepath.stat().st_size,
+            "duration": duration,
+        }
+
+    def _generate_new_names(self):
+        """파싱된 데이터를 바탕으로 새 이름과 S3 키를 생성하고 최종 video_info를 완성합니다."""
+        # _parse_info에서 저장한 중간 결과물을 사용
+        created_at_kst = self.parsed_data["created_at_kst"]
+        blackbox_uuid = self.parsed_data["blackbox_uuid"]
+        file_type = self.parsed_data["file_type"]
+        stream_started_at_kst = self.parsed_data["stream_started_at_kst"]
+
+        # KST 기준으로 새로운 파일명과 S3 키 생성
+        new_filename_kst = created_at_kst.strftime("%Y%m%d-%H%M%S") + f".{file_type}"
+        new_s3_key = f"{blackbox_uuid}/{new_filename_kst}"
+
+        # 최종 video_info 딕셔너리 완성
         self.video_info = {
             "blackbox_uuid": blackbox_uuid,
-            "stream_started_at": stream_started_at_kst_iso,
+            "stream_started_at": stream_started_at_kst if isinstance(stream_started_at_kst, str) else stream_started_at_kst.isoformat(),
             "created_at": created_at_kst.isoformat(),
-            "file_size": file_size,
-            "duration": duration,
+            "file_size": self.parsed_data["file_size"],
+            "duration": self.parsed_data["duration"],
             "object_key": new_s3_key,
             "file_type": file_type,
         }
@@ -86,7 +102,6 @@ class VideoProcessor:
         kst_timezone_delta = timedelta(hours=9)
         kst_time = utc_time + kst_timezone_delta
         return kst_time
-
 
     def _upload_to_s3(self) -> str | None:
         s3_key = self.video_info.get("object_key")
