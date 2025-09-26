@@ -1,4 +1,9 @@
-import time, shutil, logging, boto3, requests, config
+import time
+import shutil
+import logging
+import boto3
+import requests
+import config
 from moviepy.editor import VideoFileClip
 from pathlib import Path
 from botocore.exceptions import ClientError
