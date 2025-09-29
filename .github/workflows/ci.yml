@@ -50,4 +50,4 @@ jobs:
           context: .
           push: true
           # ECR 리포지토리 URI와 'latest' 태그를 이미지 이름으로 사용합니다.
-          tags: ${{ secrets.ECR_REPOSITORY_URI }}:${{ github.ref_name }}
+          tags: ${{ secrets.ECR_REPOSITORY_URI }}:${{ steps.sanitize.outputs.tag }}
