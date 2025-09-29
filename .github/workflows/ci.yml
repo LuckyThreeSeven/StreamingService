@@ -1,20 +1,35 @@
+# 워크플로우의 이름
+name: CI - Build and Push to ECR
+
+# 실행 조건: 'develop' 브랜치에 push 이벤트가 발생했을 때
+on:
+  push:
+    branches:
+      - dev
+      - chore/NVS-144-CI-CD-구축
+
+# 실행될 작업(job) 정의
 jobs:
   build-and-push:
+    # 작업의 이름
     name: Build and Push to ECR
+    # 작업을 실행할 가상 환경
     runs-on: ubuntu-latest
+
+    # 작업의 단계(step)들
     steps:
       # 1. 소스 코드 체크아웃
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Docker 태그로 사용할 수 있도록 브랜치 이름 변환 (가장 중요한 부분)
       - name: Sanitize branch name for Docker tag
-        id: sanitize # 👈 나중에 이 id를 사용해 결과값을 참조합니다.
+        id: sanitize
         run: |
           TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
-      # 3. AWS 자격 증명 설정
+      # 2. AWS 자격 증명 설정
+      # GitHub Secrets에 저장된 정보를 사용하여 AWS에 로그인합니다.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -22,15 +37,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 4. Amazon ECR에 로그인
+      # 3. Amazon ECR에 로그인
+      # 위에서 설정된 자격 증명을 사용해 ECR에 로그인합니다.
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      # 5. Docker 이미지 빌드, 태그 지정, ECR에 푸시
+      # 4. Docker 이미지 빌드, 태그 지정, ECR에 푸시
+      # build-push-action을 사용하여 모든 작업을 한 번에 처리합니다.
       - name: Build, tag, and push image to Amazon ECR
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          # ❗ 2번 단계(id: sanitize)의 결과물(outputs.tag)을 태그로 사용합니다.
-          tags: ${{ secrets.ECR_REPOSITORY_URI }}:${{ steps.sanitize.outputs.tag }}
+          # ECR 리포지토리 URI와 'latest' 태그를 이미지 이름으로 사용합니다.
+          tags: ${{ secrets.ECR_REPOSITORY_URI }}:${{ github.ref_name }}
