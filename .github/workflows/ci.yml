@@ -22,6 +22,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Sanitize branch name for Docker tag
+        id: sanitize
+        run: |
+          # github.ref_name (예: chore/NVS-144-...)에서 '/'를 '-'로 모두 치환합니다.
+          TAG=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+          # 결과를 GitHub Actions의 출력 변수로 설정합니다.
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
       # 2. AWS 자격 증명 설정
       # GitHub Secrets에 저장된 정보를 사용하여 AWS에 로그인합니다.
       - name: Configure AWS credentials
