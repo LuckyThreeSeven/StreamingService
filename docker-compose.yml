@@ -10,7 +10,7 @@ services:
       - ./server/mediamtx.yml:/mediamtx.yml:ro
       - ${MEDIAMTX_REC_PATH:-./recordings}:/recordings   # 녹화 저장 경로
   
-  db_upload_sever:  # DB -> S3 업로드 서버
+  db_upload_server:  # DB -> S3 업로드 서버
     build:
       context: ./db_upload_server
     container_name: db-upload-server
