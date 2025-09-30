@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 
 # 기본 경로 설정
-SCRIPT_DIR = Path(__file__).parent.resolve()
-BASE_DIR = (SCRIPT_DIR / "../server/recordings").resolve()
+BASE_DIR = Path("/recordings")
 
 # 상태별 폴더 경로
 PROCESSING_DIR = BASE_DIR / "processing"
