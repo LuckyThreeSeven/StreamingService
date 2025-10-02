@@ -35,6 +35,7 @@ class VideoProcessor:
             if s3_url is None:
                 raise Exception("S3 업로드에 실패했습니다.")
             self.video_info["s3_url"] = s3_url
+            logging.info(f"'{self.original_filename}' 정보: {self.video_info}")
 
             # 3. 상태 서버로 정보 전송
             if not self._send_info_to_server():
@@ -57,10 +58,10 @@ class VideoProcessor:
         
         stream_started_at_str = parts[base_index + 2]
         if stream_started_at_str == "offline":
-            stream_started_at_kst = "0"
+            stream_started_at_utc = datetime(1970, 1, 1, 0, 0, 0)
         else:
             stream_started_at_utc = datetime.strptime(stream_started_at_str, "%Y%m%d-%H%M%S")
-            stream_started_at_kst = self._change_utc_to_kst(stream_started_at_utc)
+        stream_started_at_kst = self._change_utc_to_kst(stream_started_at_utc)
 
         with VideoFileClip(str(self.filepath)) as clip:
             duration = clip.duration

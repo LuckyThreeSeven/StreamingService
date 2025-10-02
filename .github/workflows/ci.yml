@@ -1,0 +1,58 @@
+# 워크플로우의 이름
+name: CI - Build and Push Services to ECR
+
+# 실행 조건
+on:
+  push:
+    branches:
+      - dev
+      - 'chore/**'
+
+# 실행될 작업(job) 정의
+jobs:
+  build-and-push:
+    name: Build ${{ matrix.service-name }} and Push to ECR
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - service-name: db_upload_server
+            ecr-repo-secret: ECR_DB_UPLOAD_SERVER_URI
+          - service-name: offline_upload_server
+            ecr-repo-secret: ECR_OFFLINE_UPLOAD_SERVER_URI
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Sanitize branch name for Docker tag
+        id: sanitize
+        run: |
+          TAG=$(echo "${{ github.ref_name }}" | sed -E 's|^([^/]+)/([^-]+).*|\1-\2|' | tr '[:upper:]' '[:lower:]')
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR Public
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Log image name and tag
+        run: |
+          echo "Building and pushing image for service: ${{ matrix.service-name }}"
+          echo "Image URI: ${{ secrets[matrix.ecr-repo-secret] }}"
+          echo "Image Tag: ${{ steps.sanitize.outputs.tag }}"
+          echo "Full Image Name: ${{ secrets[matrix.ecr-repo-secret] }}:${{ steps.sanitize.outputs.tag }}"
+
+      - name: Build, tag, and push image to Amazon ECR
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ matrix.service-name }}
+          push: true
+          tags: ${{ secrets[matrix.ecr-repo-secret] }}:${{ steps.sanitize.outputs.tag }}

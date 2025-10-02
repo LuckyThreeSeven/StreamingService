@@ -1,0 +1,38 @@
+services:
+  mediamtx_server: # 영상 수신 서버
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx-server
+    restart: unless-stopped
+    ports:
+      - "${MEDIAMTX_SRT_PORT:-8890}:8890/udp"   # SRT 입력
+      - "${MEDIAMTX_CHECK_PORT:-9997}:9997"
+    volumes:
+      - ./server/mediamtx.yml:/mediamtx.yml:ro
+      - ${MEDIAMTX_REC_PATH:-./recordings}:/recordings   # 녹화 저장 경로
+  
+  db_upload_server:  # DB -> S3 업로드 서버
+    build:
+      context: ./db_upload_server
+    container_name: db-upload-server
+    restart: unless-stopped
+    volumes:
+      - ./recordings:/recordings
+    env_file:
+      - ./db_upload_server/.env
+  
+  offline_upload_server:  # 오프라인 영상 업로드 서버
+    build:
+      context: ./offline_upload_server
+    container_name: offline-upload-server
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8001}:${CONTAINER_PORT:-8000}"
+    volumes:
+      - ${HOST_SAVE_PATH:-./recordings}:${CONTAINER_DATA_PATH:-/recordings}
+
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}  
+
+networks:
+  default:
+    driver: bridge
+    name: streaming-network
