@@ -26,12 +26,15 @@ OFFLINE_UPLOAD_SERVER_URL = f'{OFFLINE_UPLOAD_SERVER_BASE_URL}{CLIENT_UUID}'
 def check_server_connection(url):
     """서버의 TCP 포트가 열려 있는지 확인합니다."""
     print(f" mediaMTX 서버 연결 상태 확인 중...")
+    print(f"SERVER_URL: {MEDIAMTX_SERVER_URL}")
+    print(f"SERVER_CHECK_URL: {MEDIAMTX_SERVER_CHECK_URL}")
     try:
         # 1. URL을 ':' 기준으로 IP와 포트로 분리합니다.
         ip, port_str = url.split(':')
         
         # 2. 포트 번호를 문자열에서 정수(int)로 변환합니다.
         port = int(port_str)
+        print(f"파싱 성공! {ip}, {port}")
         
     except ValueError:
         print(f"오류: '{url}'은(는) 유효한 'IP:포트' 형식이 아닙니다.")
@@ -80,7 +83,7 @@ def stream_to_server():
         '-f', 'mpegts', SRT_URL
     ])
     
-    #print("실행될 명령어: ", ' '.join(command))
+    print("실행될 명령어: ", ' '.join(command))
     subprocess.run(command, stderr=sys.stderr)
 
 def record_clip_locally(duration):
@@ -94,7 +97,7 @@ def record_clip_locally(duration):
     command = get_base_ffmpeg_command(platform.system())
     if not command: return
 
-    command[1:1] = ['-v', 'quiet', '-stats'] # 로그 간단하게
+    # command[1:1] = ['-v', 'quiet', '-stats'] # 로그 간단하게
 
     command.extend([
         '-t', str(duration),
@@ -104,7 +107,7 @@ def record_clip_locally(duration):
     ])
 
     print(f"녹화 파일 경로: {output_path}")
-    #print("실행될 명령어: ", ' '.join(command))
+    # print("실행될 명령어: ", ' '.join(command))
     subprocess.run(command, stderr=sys.stderr)
     print(f" {duration}초 녹화 완료.")
 
@@ -130,6 +133,8 @@ def upload_local_files():
                 files = {'video_file': (file_name, f, 'video/mp4')}
                 # 파일과 함께 보낼 추가 데이터 (예: UUID)
                 payload = {'uuid': CLIENT_UUID}
+
+                print(f"오프라인 서버 URL: {OFFLINE_UPLOAD_SERVER_URL}")
 
                 # HTTP POST 요청 전송
                 response = requests.post(OFFLINE_UPLOAD_SERVER_URL, files=files, data=payload, timeout=60)
@@ -172,6 +177,7 @@ def start_online_and_upload_concurrently():
 
 # --- 메인 실행 루프 ---
 if __name__ == "__main__":
+    print(f"오프라인 서버 URL: {OFFLINE_UPLOAD_SERVER_URL}")
     try:
         while True:
             if check_server_connection(MEDIAMTX_SERVER_CHECK_URL):
