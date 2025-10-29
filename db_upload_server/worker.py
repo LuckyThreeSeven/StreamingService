@@ -9,6 +9,34 @@ from pathlib import Path
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 
+from prometheus_client import start_http_server, Counter, Histogram, Gauge
+import os  # os.path.getmtime()을 위해 import
+
+
+# 측정할 메트릭 정의 (전역 변수)
+
+# 1. 엔드투엔드 처리 지연 시간 (Histogram)
+LATENCY_HISTOGRAM = Histogram(
+    'video_processing_e2e_latency_seconds',
+    'End-to-end latency from file creation (mtime) to DB POST success',
+    buckets=[1, 5, 10, 30, 60, 120, 300]
+)
+
+# 2. 처리량 (Counter)
+THROUGHPUT_COUNTER = Counter(
+    'video_processing_processed_total',
+    'Total video segments processed',
+    ['status']  # 'success' 또는 'failed' 라벨
+)
+
+# 3. EFS 스캔 자체에 걸린 시간 (Gauge)
+EFS_SCAN_DURATION = Gauge(
+    'video_file_scanner_scan_duration_seconds',
+    'Duration of the EFS /recordings scan operation'
+)
+
+start_http_server(8000)
+
 # --- 로깅 설정 ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -21,7 +49,7 @@ class VideoProcessor:
         self.video_info = {}
         self.parsed_data = {}
 
-    def run(self):
+    def run(self, start_timestamp: float):
         """처리 파이프라인 전체를 실행합니다."""
         logging.info(f"'{self.original_filename}' 처리 시작.")
         try:
@@ -40,6 +68,13 @@ class VideoProcessor:
             # 3. 상태 서버로 정보 전송
             if not self._send_info_to_server():
                 raise Exception("상태 서버로 정보 전송에 실패했습니다.")
+
+            # --- Prometheus: 성공 시 메트릭 기록 ---
+            # DB 전송 성공 직후, 지연 시간과 처리량을 기록합니다.
+            end_timestamp = time.time()
+            latency = end_timestamp - start_timestamp
+            LATENCY_HISTOGRAM.observe(latency)
+            THROUGHPUT_COUNTER.labels(status='success').inc()
             
             # 4. 성공 시 파일 이동
             self._move_to(config.COMPLETED_DIR)
@@ -47,6 +82,10 @@ class VideoProcessor:
 
         except Exception as e:
             logging.error(f"'{self.original_filename}' 처리 중 에러 발생: {e}")
+
+            # --- Prometheus: 실패 시 메트릭 기록 ---
+            THROUGHPUT_COUNTER.labels(status='failed').inc()
+
             self._move_to(config.FAILED_DIR)
 
     def _parse_info(self):
@@ -165,10 +204,25 @@ def main_loop():
     logging.info(f"워커 시작. '{config.BASE_DIR}' 폴더를 스캔합니다...")
     
     scanner = FileScanner(config.BASE_DIR)
-    found_videos = scanner.find_new_videos()
+
+    # --- Prometheus: EFS 스캔 시간 측정 ---
+    scan_start_time = time.time()
+
+    try:
+        found_videos = scanner.find_new_videos()
+    finally:
+        scan_end_time = time.time()
+        EFS_SCAN_DURATION.set(scan_end_time - scan_start_time)
+    # ---
 
     for source_path in found_videos:
         try:
+
+            # --- Prometheus: 지연 시간 측정을 위해 원본 mtime 확보 ---
+            # (파일을 이동하기 전에 mtime을 가져와야 합니다)
+            start_timestamp = os.path.getmtime(source_path)
+            # ---
+
             relative_path = source_path.relative_to(config.BASE_DIR)
             
             if len(relative_path.parts) < 2:
@@ -183,7 +237,9 @@ def main_loop():
             
             # VideoProcessor 객체를 생성하고 실행 (파일 경로만 전달)
             processor = VideoProcessor(processing_path)
-            processor.run()
+            # processor.run()
+            # --- Prometheus: mtime을 인자로 전달 ---
+            processor.run(start_timestamp=start_timestamp)
             
         except FileNotFoundError:
             continue
