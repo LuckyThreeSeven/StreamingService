@@ -9,6 +9,8 @@ services:
     volumes:
       - ./server/mediamtx.yml:/mediamtx.yml:ro
       - ${MEDIAMTX_REC_PATH:-./recordings}:/recordings   # 녹화 저장 경로
+    networks: # 네트워크 추가
+      - streaming-network
   
   db_upload_server:  # DB -> S3 업로드 서버
     build:
@@ -19,6 +21,8 @@ services:
       - ./recordings:/recordings
     env_file:
       - ./db_upload_server/.env
+    networks: # 네트워크 추가
+      - streaming-network
   
   offline_upload_server:  # 오프라인 영상 업로드 서버
     build:
@@ -30,9 +34,22 @@ services:
     volumes:
       - ${HOST_SAVE_PATH:-./recordings}:${CONTAINER_DATA_PATH:-/recordings}
 
-    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}  
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}
+    networks: # 네트워크 추가
+      - streaming-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    networks:
+      - streaming-network
 
 networks:
-  default:
+  streaming-network:
     driver: bridge
     name: streaming-network
