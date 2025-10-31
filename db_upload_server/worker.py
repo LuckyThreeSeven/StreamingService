@@ -64,8 +64,7 @@ EFS_SCAN_DURATION = Gauge(
 )
 
 # 4. /processing 폴더로의 파일 이동 시간 (Histogram)
-DEFAULT_MOVE_BUCKETS = [0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65,
-                        0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2, 3, 4, 5]
+DEFAULT_MOVE_BUCKETS = [0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.5, 2, 3, 4, 5]
 move_buckets = get_buckets_from_env("MOVE_BUCKETS", DEFAULT_MOVE_BUCKETS)
 FILE_MOVE_DURATION_SECONDS = Histogram(
     'video_file_move_duration_seconds',
