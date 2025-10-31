@@ -38,7 +38,9 @@ def get_buckets_from_env(env_var_name: str, default_buckets: list[float]) -> lis
 
 
 # 측정할 메트릭 정의 (전역 변수)
-DEFAULT_LATENCY_BUCKETS = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10, 15, 30]
+DEFAULT_LATENCY_BUCKETS = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3,
+                           1.35, 1.4, 1.45, 1.5, 1.55, 1.6, 1.65, 1.7, 1.75, 1.8, 1.85, 1.9, 1.95, 2, 2.1, 2.2, 2.3,
+                           2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3, 4, 5]
 latency_buckets = get_buckets_from_env("LATENCY_BUCKETS", DEFAULT_LATENCY_BUCKETS)
 
 # 1. 엔드투엔드 처리 지연 시간 (Histogram)
@@ -71,6 +73,7 @@ FILE_MOVE_DURATION_SECONDS = Histogram(
 )
 
 start_http_server(8000)
+
 
 class VideoProcessor:
     """영상 파일 하나를 처리하는 모든 단계를 책임지는 클래스"""
