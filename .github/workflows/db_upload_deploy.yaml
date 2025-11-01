@@ -1,26 +1,18 @@
-# 워크플로우의 이름
-name: CI - Build and Push Services to ECR
+name: Deploy db_upload_server
 
-# 실행 조건
 on:
   push:
     branches:
       - dev
       - 'chore/**'
+    paths:
+      - 'db_upload_server/**'
+      - '.github/workflows/db_upload_deploy.yaml'
 
-# 실행될 작업(job) 정의
 jobs:
   build-and-push:
-    name: Build ${{ matrix.service-name }} and Push to ECR
+    name: Build db_upload_server and Push to ECR
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        include:
-          - service-name: db_upload_server
-            ecr-repo-secret: ECR_DB_UPLOAD_SERVER_URI
-          - service-name: offline_upload_server
-            ecr-repo-secret: ECR_OFFLINE_UPLOAD_SERVER_URI
 
     steps:
       - name: Checkout Code
@@ -45,14 +37,14 @@ jobs:
 
       - name: Log image name and tag
         run: |
-          echo "Building and pushing image for service: ${{ matrix.service-name }}"
-          echo "Image URI: ${{ secrets[matrix.ecr-repo-secret] }}"
+          echo "Building and pushing image for service: db_upload_server"
+          echo "Image URI: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}"
           echo "Image Tag: ${{ steps.sanitize.outputs.tag }}"
-          echo "Full Image Name: ${{ secrets[matrix.ecr-repo-secret] }}:${{ steps.sanitize.outputs.tag }}"
+          echo "Full Image Name: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}:${{ steps.sanitize.outputs.tag }}"
 
       - name: Build, tag, and push image to Amazon ECR
         uses: docker/build-push-action@v4
         with:
-          context: ./${{ matrix.service-name }}
+          context: ./db_upload_server
           push: true
-          tags: ${{ secrets[matrix.ecr-repo-secret] }}:${{ steps.sanitize.outputs.tag }}
+          tags: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}:${{ steps.sanitize.outputs.tag }}
