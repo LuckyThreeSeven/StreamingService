@@ -1,0 +1,50 @@
+name: Deploy db_upload_server
+
+on:
+  push:
+    branches:
+      - dev
+      - 'chore/**'
+    paths:
+      - 'db_upload_server/**'
+      - '.github/workflows/db_upload_deploy.yaml'
+
+jobs:
+  build-and-push:
+    name: Build db_upload_server and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Sanitize branch name for Docker tag
+        id: sanitize
+        run: |
+          TAG=$(echo "${{ github.ref_name }}" | sed -E 's|^([^/]+)/([^-]+).*|\1-\2|' | tr '[:upper:]' '[:lower:]')
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR Public
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Log image name and tag
+        run: |
+          echo "Building and pushing image for service: db_upload_server"
+          echo "Image URI: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}"
+          echo "Image Tag: ${{ steps.sanitize.outputs.tag }}"
+          echo "Full Image Name: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}:${{ steps.sanitize.outputs.tag }}"
+
+      - name: Build, tag, and push image to Amazon ECR
+        uses: docker/build-push-action@v4
+        with:
+          context: ./db_upload_server
+          push: true
+          tags: ${{ secrets.ECR_DB_UPLOAD_SERVER_URI }}:${{ steps.sanitize.outputs.tag }}
