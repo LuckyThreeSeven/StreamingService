@@ -13,7 +13,11 @@ from video_processor import VideoProcessor
 from metrics import LATENCY_HISTOGRAM, THROUGHPUT_COUNTER
 
 class PrimaryWorker(Thread):
-    """1차 처리 워커 (WORK_QUEUE 담당)"""
+    """
+    1차 처리 워커 (WORK_QUEUE 담당)
+    스캔 후 처음 처리하는 역할 담당
+    """
+    # TODO: 예외 처리 세분화 필요
     def __init__(self):
         super().__init__()
         self.daemon = True
@@ -68,7 +72,12 @@ class PrimaryWorker(Thread):
                 global_state.WORK_QUEUE.task_done()
 
 class RetryScheduler(Thread):
-    """재시도 스케줄러 (SCHEDULER_QUEUE -> RETRY_QUEUE)"""
+    """
+    재시도 스케줄러 (SCHEDULER_QUEUE -> RETRY_QUEUE)
+    1분에 한 번씩 SCHEDULER_QUEUE를 확인해서
+    재시도 시간이 된 작업을 RETRY_QUEUE로 이동
+    스레드 1개만 사용
+    """
     def __init__(self):
         super().__init__()
         self.daemon = True
@@ -105,7 +114,14 @@ class RetryScheduler(Thread):
                 global_state.SCHEDULER_QUEUE.put(item)
 
 class RetryWorker(Thread):
-    """재시도 워커 (RETRY_QUEUE 담당)"""
+    """
+    재시도 워커 (RETRY_QUEUE 담당)
+    큐에는 재시작 시간이 된 작업만 들어있음
+    스레드 1~2개 정도만 필요
+
+    완전히 실패한 작업은 config.MAX_RETRIES 이후 EBS 내에 FAILED_DIR로 이동
+    """
+    # TODO: 완전히 실패한 작업은 FAILED_DIR로 이동, 추후 처리 방안 고려
     def __init__(self):
         super().__init__()
         self.daemon = True
