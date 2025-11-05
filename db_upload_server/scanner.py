@@ -8,7 +8,7 @@ from pathlib import Path
 import config
 import global_state
 from models import JobItem
-from metrics import EFS_SCAN_DURATION, FILE_MOVE_DURATION_SECONDS
+from metrics import FILE_SCAN_DURATION, FAILED_FILES_GAUGE
 
 class FileScanner:
     """처리할 새로운 영상 파일을 찾아내는 클래스"""
@@ -38,10 +38,16 @@ def main_scanner_loop():
         found_videos = scanner.find_new_videos()
     finally:
         scan_end_time = time.time()
-        EFS_SCAN_DURATION.set(scan_end_time - scan_start_time)
+        FILE_SCAN_DURATION.observe(scan_end_time - scan_start_time)
+    try:
+        failed_file_count = len([f for f in config.FAILED_DIR.glob('**/*') if f.is_file()])
+        FAILED_FILES_GAUGE.set(failed_file_count)
+    except Exception as e:
+        logging.warning(f"FAILED_DIR 파일 개수 측정 실패: {e}")
+        FAILED_FILES_GAUGE.set(0)
 
     if not found_videos:
-        return # 처리할 파일 없음
+        return  # 처리할 파일 없음
 
     logging.info(f"{len(found_videos)}개의 새 파일을 발견. 1차 작업 큐에 추가합니다.")
 
@@ -59,15 +65,10 @@ def main_scanner_loop():
             processing_path = config.PROCESSING_DIR / relative_path
             processing_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # --- 파일 이동 시간 측정 ---
-            move_start_time = time.time()
             shutil.move(source_path, processing_path)
-            move_duration = time.time() - move_start_time
-            FILE_MOVE_DURATION_SECONDS.observe(move_duration)
-            # ---
 
             logging.info(f"'{source_path.name}' 파일을 processing 폴더로 이동.")
-            
+
             # 1차 처리를 직접 하지 않고, WORK_QUEUE에 JobItem을 추가
             job = JobItem(filepath=processing_path, start_timestamp=start_timestamp, attempts=1)
             global_state.WORK_QUEUE.put(job)

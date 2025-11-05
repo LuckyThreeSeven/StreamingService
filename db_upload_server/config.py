@@ -10,7 +10,7 @@ COMPLETED_DIR = BASE_DIR / "completed"
 FAILED_DIR = BASE_DIR / "failed"
 
 # 스캔 설정
-SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "10"))
+SCAN_INTERVAL_SECONDS = int(os.getenv("SCAN_INTERVAL_SECONDS", "1"))
 
 # AWS S3 설정
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "default-bucket-name")
