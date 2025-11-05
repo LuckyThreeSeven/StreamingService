@@ -6,6 +6,7 @@ import metrics
 from workers import PrimaryWorker, RetryScheduler, RetryWorker
 from scanner import main_scanner_loop
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
 
 # 스캔 -> 메인 스레드
 # 큐 구조 설명:
@@ -47,7 +48,6 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
     logging.info("애플리케이션 시작...")
     logging.info(f"기본 녹화 폴더: {config.BASE_DIR}")
     logging.info(f"1차 처리 워커 수: {config.NUM_WORKERS}")
