@@ -6,6 +6,7 @@ import metrics
 from workers import PrimaryWorker, RetryScheduler, RetryWorker
 from scanner import main_scanner_loop
 
+
 # 스캔 -> 메인 스레드
 # 큐 구조 설명:
 # 1번 큐
@@ -44,7 +45,18 @@ def main():
         )
         time.sleep(config.SCAN_INTERVAL_SECONDS)
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
     logging.info("애플리케이션 시작...")
+    logging.info(f"기본 녹화 폴더: {config.BASE_DIR}")
+    logging.info(f"1차 처리 워커 수: {config.NUM_WORKERS}")
+    logging.info(f"재시도 워커 수: {config.NUM_RETRY_WORKER}")
+    logging.info(f"S3 버킷 이름: {config.S3_BUCKET_NAME}")
+    logging.info(f"상태 서버 URL: {config.STATUS_SERVER_URL}")
+    logging.info(f"스캔 간격(초): {config.SCAN_INTERVAL_SECONDS}")
+    logging.info(f"최대 재시도 횟수: {config.MAX_RETRIES}")
+    logging.info(f"재시도 지연 시간(분): {config.RETRY_DELAY_MINUTES}")
+    logging.info(f"스케줄러 간격(초): {config.SCHEDULER_INTERVAL_SECONDS}")
+
     main()
