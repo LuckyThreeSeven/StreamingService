@@ -1,26 +1,22 @@
-# SRT 리스너를 활성화합니다.
 srt: yes
 srtAddress: :8890
-
-api: yes # api 서버 기능을 활성화 서버가 연결되는지 확인하기 위함
+api: yes
 apiAddress: :9997
-
-# pathDefaults는 비워둡니다.
+metrics: yes
+metricsAddress: :9998
 pathDefaults:
 
-# paths에 정규표현식을 사용하여 '모든 경로'에 대한 규칙을 명시적으로 정의합니다.
 paths:
-  # '~^.*$'는 모든 경로 이름과 일치하는 정규표현식입니다.
   '~^.*$':
     source: publisher
     record: yes
-    recordPath: ./recordings/%path/%Y%m%d-%H%M%S
+    recordPath: ./recordings/writing/%path/%Y%m%d-%H%M%S
     recordFormat: fmp4
-    
-    # 영상이 생성되는 단위 설정
     recordPartDuration: 30s
-    
-    # 영상의 길이 단위 30 +- 3초 정도 오차가 존재
     recordSegmentDuration: 30s
-    
     recordDeleteAfter: 24h
+    runOnRecordSegmentComplete: |
+      /bin/sh -c "
+        mkdir -p \"$(dirname \"$(printf %s \"${MTX_SEGMENT_PATH}\" | sed 's#/writing/#/ready/#')\")\" \
+        && mv \"${MTX_SEGMENT_PATH}\" \"$(printf %s \"${MTX_SEGMENT_PATH}\" | sed 's#/writing/#/ready/#')\"
+      "

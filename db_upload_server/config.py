@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 # 기본 경로 설정
-BASE_DIR = Path(os.getenv("BASE_DIR", "/recordings"))
+BASE_DIR = Path(os.getenv("BASE_DIR", "/recordings/ready"))
 
 # 상태별 폴더 경로
 PROCESSING_DIR = BASE_DIR / "processing"

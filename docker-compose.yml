@@ -1,10 +1,10 @@
 services:
   mediamtx_server: # 영상 수신 서버
-    image: bluenviron/mediamtx:latest
+    image: bluenviron/mediamtx:latest-ffmpeg
     container_name: mediamtx-server
     restart: unless-stopped
     ports:
-      - "${MEDIAMTX_SRT_PORT:-8890}:8890/udp"   # SRT 입력
+      - "${MEDIAMTX_SRT_PORT:-8890}:8890/udp"
       - "${MEDIAMTX_CHECK_PORT:-9997}:9997"
     volumes:
       - ./server/mediamtx.yml:/mediamtx.yml:ro
@@ -23,20 +23,20 @@ services:
       - ./db_upload_server/.env
     networks: # 네트워크 추가
       - streaming-network
-  
-  offline_upload_server:  # 오프라인 영상 업로드 서버
-    build:
-      context: ./offline_upload_server
-    container_name: offline-upload-server
-    restart: unless-stopped
-    ports:
-      - "${HOST_PORT:-8001}:${CONTAINER_PORT:-8000}"
-    volumes:
-      - ${HOST_SAVE_PATH:-./recordings}:${CONTAINER_DATA_PATH:-/recordings}
 
-    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}
-    networks: # 네트워크 추가
-      - streaming-network
+#  offline_upload_server:  # 오프라인 영상 업로드 서버
+#    build:
+#      context: ./offline_upload_server
+#    container_name: offline-upload-server
+#    restart: unless-stopped
+#    ports:
+#      - "${HOST_PORT:-8001}:${CONTAINER_PORT:-8000}"
+#    volumes:
+#      - ${HOST_SAVE_PATH:-./recordings}:${CONTAINER_DATA_PATH:-/recordings}
+#
+#    command: uvicorn app.main:app --host 0.0.0.0 --port ${CONTAINER_PORT:-8000}
+#    networks: # 네트워크 추가
+#      - streaming-network
 
   prometheus:
     image: prom/prometheus:latest

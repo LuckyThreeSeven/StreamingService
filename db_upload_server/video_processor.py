@@ -23,6 +23,7 @@ class VideoProcessor:
         """경로와 파일로부터 메타데이터를 파싱합니다."""
         parts = self.filepath.parts
         base_index = parts.index(config.PROCESSING_DIR.name)
+        logging.info(f"파싱 중: {self.filepath}, base_index: {base_index}")
 
         created_at_utc = datetime.strptime(self.filepath.stem, "%Y%m%d-%H%M%S")
 
@@ -44,6 +45,8 @@ class VideoProcessor:
             "file_size": self.filepath.stat().st_size,
             "duration": duration,
         }
+
+        logging.info(self.parsed_data)
 
     def _generate_new_names(self):
         """파싱된 데이터를 바탕으로 새 이름과 S3 키를 생성합니다."""
