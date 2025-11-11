@@ -23,6 +23,7 @@ OFFLINE_REC_DURATION = config.OFFLINE_REC_DURATION
 OFFLINE_UPLOAD_SERVER_BASE_URL = config.OFFLINE_UPLOAD_SERVER_BASE_URL
 OFFLINE_UPLOAD_SERVER_URL = f'{OFFLINE_UPLOAD_SERVER_BASE_URL}{CLIENT_UUID}'
 
+
 def check_server_connection(url):
     """서버의 TCP 포트가 열려 있는지 확인합니다."""
     print(f"\n mediaMTX 서버 연결 상태 확인 중...")
@@ -50,20 +51,21 @@ def check_server_connection(url):
         print("연결 실패: 호스트 이름을 확인할 수 없습니다.")
         return False
 
-# def get_base_ffmpeg_command(os_type):
-#     """운영체제에 따라 기본 FFmpeg 입력 명령을 반환합니다."""
-#     if os_type == "Darwin":
-#         return [
-#             'ffmpeg', '-f', 'avfoundation', '-framerate', '30', '-pix_fmt', 'nv12',
-#             '-i', '0:0'
-#         ]
-#     elif os_type == "Linux":
-#         return [
-#             'ffmpeg', '-f', 'v4l2', '-framerate', '30', '-video_size', '1280x720',
-#             '-i', '/dev/video0',
-#             '-f', 'alsa', '-i', 'hw:0'
-#         ]
-#     return None
+
+def get_base_ffmpeg_command(os_type):
+    """운영체제에 따라 기본 FFmpeg 입력 명령을 반환합니다."""
+    if os_type == "Darwin":
+        return [
+            'ffmpeg', '-f', 'avfoundation', '-framerate', '30', '-pix_fmt', 'nv12',
+            '-i', '0:0'
+        ]
+    elif os_type == "Linux":
+        return [
+            'ffmpeg', '-f', 'v4l2', '-framerate', '30', '-video_size', '1280x720',
+            '-i', '/dev/video0',
+            '-f', 'alsa', '-i', 'hw:0'
+        ]
+    return None
 
 def stream_to_server():
     """온라인 모드: 서버로 스트리밍을 시작합니다. 연결이 끊기면 함수가 종료됩니다."""
@@ -74,7 +76,7 @@ def stream_to_server():
     command = get_base_ffmpeg_command(platform.system())
     if not command: return
 
-    command[1:1] = ['-v', 'quiet', '-stats'] # 로그 간단하게
+    command[1:1] = ['-v', 'quiet', '-stats']  # 로그 간단하게
 
     command.extend([
         '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency',
@@ -84,6 +86,7 @@ def stream_to_server():
 
     print(" [메인 스레드] 실행될 명령어: ", ' '.join(command))
     subprocess.run(command, stderr=sys.stderr)
+
 
 def record_clip_locally(duration):
     """오프라인 모드: 클립을 로컬에 임시 파일로 저장하고, 완료되면 '-ready' 태그를 붙입니다."""
@@ -114,14 +117,15 @@ def record_clip_locally(duration):
         print(f" 녹화 중 오류 발생. 불완전한 파일 '{os.path.basename(temp_output_path)}'이(가) 남았을 수 있습니다.")
 
 
-def get_base_ffmpeg_command(input_file):
-    """영상을 빠르게 보내기 위한 FFmpeg 입력 명령을 반환합니다."""
+def get_base_ffmpeg_command_for_offline(input_file):
+    """특정 영상을 무한 반복 스트리밍하기 위한 FFmpeg 입력 명령을 반환합니다."""
 
     return [
         'ffmpeg',
         '-stream_loop', '0',
         '-i', input_file
     ]
+
 
 def upload_local_files_via_srt():
     """새로운 오프라인 업로드 파일 처리 함수"""
@@ -148,13 +152,14 @@ def upload_local_files_via_srt():
 
         SRT_URL = f'srt://{MEDIAMTX_SERVER_URL}?streamid=publish:{CLIENT_UUID}/offline'
 
-        command = get_base_ffmpeg_command(file_path)
+        # 3. FFmpeg 기본 명령 (무한 루프)
+        command = get_base_ffmpeg_command_for_offline(file_path)
 
         # 4. 출력 및 인코딩 설정 추가
         command.extend([
             '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency',  # 비디오 인코딩
             '-c:a', 'aac', '-b:a', '128k',  # 오디오 인코딩
-            '-f', 'mpegts',
+            '-f', 'mpegts',  # 출력 형식
             '-v', 'quiet', '-stats',  # 로그 간소화
             SRT_URL
         ])
@@ -189,6 +194,7 @@ def start_concurrent_streaming_and_uploading():
 
     # 2. 메인 스레드에서 실시간 스트리밍 시작
     stream_to_server()
+
 
 # --- 메인 실행 루프 ---
 if __name__ == "__main__":
