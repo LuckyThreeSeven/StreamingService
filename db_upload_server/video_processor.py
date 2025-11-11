@@ -28,8 +28,18 @@ class VideoProcessor:
         created_at_utc = datetime.strptime(self.filepath.stem, "%Y%m%d-%H%M%S")
 
         stream_started_at_str = parts[base_index + 2]
-        if stream_started_at_str == "offline":
-            stream_started_at_utc = datetime(1970, 1, 1, 0, 0, 0)
+        if stream_started_at_str[:7] == "offline":
+            new_stream_started_at_str = stream_started_at_str[7:22]
+            #stream_started_at_utc = datetime(1970, 1, 1, 0, 0, 0)
+            stream_started_at_utc = datetime.strptime(new_stream_started_at_str, "%Y%m%d-%H%M%S")
+            p = Path(self.filepath)
+            dst = p.with_name(f"{new_stream_started_at_str}.mp4")  # 같은 폴더 내 새 이름
+            # 실제 파일 이름 변경
+            p.replace(dst)
+
+            # 변수도 새 경로로 갱신
+            self.filepath = p.with_name(f"{new_stream_started_at_str}.mp4")
+            self.original_filename = f"{new_stream_started_at_str}.mp4"
         else:
             stream_started_at_utc = datetime.strptime(stream_started_at_str, "%Y%m%d-%H%M%S")
         stream_started_at_kst = self._change_utc_to_kst(stream_started_at_utc)
@@ -93,9 +103,10 @@ class VideoProcessor:
     def _send_info_to_server(self) -> bool:
         """상태 서버 전송. 실패 시 False 반환."""
         try:
+            logging.info(f"상태 서버로 정보 전송 시도: {self.video_info}")
             response = requests.post(config.STATUS_SERVER_URL, json=self.video_info, timeout=10)
             response.raise_for_status()
-            logging.info(f"상태 서버로 정보 전송 성공: {self.video_info.get('object_key')}")
+            logging.info(f"상태 서버로 정보 전송 성공: {self.video_info.get('object_key')}, self.video_info: {self.video_info}")
             return True
         except requests.exceptions.RequestException as e:
             logging.error(f"상태 서버로 정보 전송 실패: {self.video_info.get('object_key')}, 에러: {e}")

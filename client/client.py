@@ -133,7 +133,7 @@ def upload_local_files_via_srt():
     """(백그라운드 작업) 로컬에 저장된 '-ready.mp4' 파일들을 SRT로 스트리밍하여 업로드합니다."""
     print("\n [업로드 스레드] 오프라인 영상 파일 SRT 스트리밍 업로드를 시작합니다.")
     # '-ready.mp4' 패턴을 사용하여 완료된 파일만 대상으로 지정
-    files_to_upload = sorted(glob.glob(os.path.join(LOCAL_REC_PATH, "*-ready.mp4")))
+    files_to_upload = sorted(glob.glob(os.path.join(LOCAL_REC_PATH, "*")))
 
     if not files_to_upload:
         print(" [업로드 스레드] 업로드할 파일이 없습니다.")
@@ -148,9 +148,11 @@ def upload_local_files_via_srt():
             return
 
         file_name = os.path.basename(file_path)
+        new_file_name = file_name.replace("-ready.mp4", ".mp4")
+        base_name = new_file_name.replace('-ready.mp4', '').replace('.mp4', '')
         print(f"\n [업로드 스레드] '{file_name}' 파일 스트리밍 시도...")
 
-        SRT_URL = f'srt://{MEDIAMTX_SERVER_URL}?streamid=publish:{CLIENT_UUID}/offline'
+        SRT_URL = f'srt://{MEDIAMTX_SERVER_URL}?streamid=publish:{CLIENT_UUID}/offline{base_name}'
 
         # 3. FFmpeg 기본 명령 (무한 루프)
         command = get_base_ffmpeg_command_for_offline(file_path)
